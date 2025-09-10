@@ -119,6 +119,11 @@ def get_index_url():
     return index_url
 """
 
+def get_sources_list_url():
+    agiros_sources_url = 'http://1.94.193.239/yumrepo/agiros/agirosdep/sources.list.d/base.yaml'
+    info("Using AGIROS sources.list.d/base.yaml: '{0}'".format(agiros_sources_url))
+    return agiros_sources_url
+
 
 def get_index():
     global _rosdistro_index

@@ -14,7 +14,7 @@ from bloom.generators.debian.generate_cmd import main as debian_main
 from bloom.generators.debian.generate_cmd import prepare_arguments
 
 from bloom.logging import info
-from bloom.rosdistro_api import get_index
+from bloom.rosdistro_api import get_index, get_sources_list_url
 
 
 def agirosify_package_name(name, rosdistro):
@@ -36,6 +36,11 @@ class AgirosDebianGenerator(DebianGenerator):
     description = "Generates debians tailored for the AGIROS rosdistro"
     # Rule 2: Set the default installation prefix
     default_install_prefix = '/opt/agiros/'
+
+    def __init__(self, *args, **kwargs):
+        super(AgirosDebianGenerator, self).__init__(*args, **kwargs)
+        # 自动获取 AGIROS sources.list.d/base.yaml 的 URL
+        self.agiros_sources_list_url = get_sources_list_url()
 
     def prepare_arguments(self, parser):
         # Add command line arguments for this generator
@@ -70,7 +75,6 @@ class AgirosDebianGenerator(DebianGenerator):
             native=native
         )
 
-        # === AGIROS Customizations Start Here ===
         subs['Rosdistro'] = self.rosdistro
         # Rule 1: Apply AGIROS naming to the main package
         subs['Package'] = agirosify_package_name(package.name, self.rosdistro)

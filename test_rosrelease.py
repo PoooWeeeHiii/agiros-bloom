@@ -46,7 +46,6 @@ class TestRosReleaseGenerator(unittest.TestCase):
         args = self.parser.parse_args([])
         self.generator.handle_arguments(args)
         
-        # 断言结果是否符合预期
         self.assertEqual(self.generator.rosdistro, 'loong')
         print("     成功: rosdistro 默认值为 'loong'。")
 
@@ -59,7 +58,6 @@ class TestRosReleaseGenerator(unittest.TestCase):
         args = self.parser.parse_args(['--rosdistro', 'jazzy'])
         self.generator.handle_arguments(args)
 
-        # 断言结果是否符合预期
         self.assertEqual(self.generator.rosdistro, 'jazzy')
         print("     成功: rosdistro 被正确覆盖为 'jazzy'。")
 
