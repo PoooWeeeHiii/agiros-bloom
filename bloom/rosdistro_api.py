@@ -74,6 +74,10 @@ _rosdistro_index_original_branch = None
 
 
 def get_index_url():
+    agiros_url = 'http://1.94.193.239/yumrepo/agiros/agirosdep/index-v4.yaml'
+    info("Overriding ROS Distro index with hardcoded URL: '{0}'".format(agiros_url))
+    return agiros_url
+"""
     global _rosdistro_index_commit, _rosdistro_index_original_branch
     index_url = rosdistro.get_index_url()
     pr = urlparse(index_url)
@@ -113,6 +117,7 @@ def get_index_url():
         else:
             debug("Failed to get commit for rosdistro index file: json")
     return index_url
+"""
 
 
 def get_index():

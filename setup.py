@@ -3,6 +3,8 @@
 import sys
 from setuptools import find_packages, setup
 
+# 这是一个与您的项目代码结构同步的setup.py版本。
+# 它清理了过时的命令入口点，并保留了您对agirosdebian生成器的所有定制。
 
 setup(
     name='bloom',
@@ -52,12 +54,8 @@ generation of platform specific source packages, like debian's src-debs.""",
     test_suite='test',
     entry_points={
         'console_scripts': [
-            'git-bloom-config = bloom.commands.git.config:main',
-            'git-bloom-import-upstream = bloom.commands.git.import_upstream:main',
-            'git-bloom-branch = bloom.commands.git.branch:main',
-            'git-bloom-patch = bloom.commands.git.patch.patch_main:main',
-            'git-bloom-generate = bloom.commands.git.generate:main',
-            'git-bloom-release = bloom.commands.git.release:main',
+            # 清理：移除了所有指向不存在的 bloom.commands.git.* 的条目
+            # 只保留与您截图中的文件相对应的命令
             'bloom-export-upstream = bloom.commands.export_upstream:main',
             'bloom-update = bloom.commands.update:main',
             'bloom-release = bloom.commands.release:main',
@@ -67,15 +65,18 @@ generation of platform specific source packages, like debian's src-debs.""",
             'release = bloom.generators.release:ReleaseGenerator',
             'rosrelease = bloom.generators.rosrelease:RosReleaseGenerator',
             'debian = bloom.generators.debian:DebianGenerator',
-            'rosdebian = bloom.generators.rosdebian:RosDebianGenerator',
             'rpm = bloom.generators.rpm:RpmGenerator',
-            'rosrpm = bloom.generators.rosrpm:RosRpmGenerator'
+            'rosrpm = bloom.generators.rosrpm:RosRpmGenerator',
+            # 保留：您对agirosdebian的定制
+            'agirosdebian = bloom.generators.agirosdebian:AgirosDebianGenerator',
         ],
         'bloom.generate_cmds': [
             'debian = bloom.generators.debian.generate_cmd:description',
-            'rosdebian = bloom.generators.rosdebian:description',
             'rpm = bloom.generators.rpm.generate_cmd:description',
-            'rosrpm = bloom.generators.rosrpm:description'
+            'rosrpm = bloom.generators.rosrpm:description',
+            # 保留：您对agirosdebian的定制
+            'agirosdebian = bloom.generators.agirosdebian:description',
         ]
     }
 )
+

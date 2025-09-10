@@ -10,8 +10,7 @@ from bloom.packages import get_package_data
 
 from bloom.util import execute_command
 
-from bloom.rosdistro_api import get_non_eol_distros_prompt
-
+# from bloom.rosdistro_api import get_non_eol_distros_prompt
 
 class RosReleaseGenerator(ReleaseGenerator):
     title = 'rosrelease'
@@ -26,7 +25,11 @@ prefix set to 'release'.
     def prepare_arguments(self, parser):
         # Add command line arguments for this generator
         add = parser.add_argument
-        add('rosdistro', help="ROS distro to target (%s, etc.)" % get_non_eol_distros_prompt())
+        # 将 'loong' 设为默认发行版 (default='loong')。
+        # 不再强制要求此参数 (通过移除 'required=True' 的隐式需求)。
+        # 使用固定的、更清晰的帮助文本。
+        add('--rosdistro', default='loong',
+            help="ROS distro to target (default: loong)")
         return ReleaseGenerator.prepare_arguments(self, parser)
 
     def handle_arguments(self, args):
@@ -82,3 +85,4 @@ Please checkout the release branch and then create a tag manually with:""")
                     # Check for valid CMakeLists.txt if a metapackage
                     self.metapackage_check(path, pkg)
             return name if type(name) is list else [name]
+
