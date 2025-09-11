@@ -37,6 +37,7 @@ def create_agiros_installer_context():
             "tags": ["base"],
         }
     }
+    info("[DEBUG] agirosdep context is in use!")
     return ctx
 
 
