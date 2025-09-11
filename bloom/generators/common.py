@@ -110,20 +110,18 @@ def update_rosdep():
 from rosdep2.sources_list import SourcesListLoader
 
 def create_agiros_installer_context():
-    """
-    创建一个 rosdep installer context，
-    用 agirosdep 的 base.yaml 覆盖默认 sources。
-    """
     ctx = create_default_installer_context()
 
-    # 用 SourcesListLoader 来替换，避免直接访问 ctx.rosdep_sources_list
-    loader = SourcesListLoader()
     agiros_url = get_sources_list_url()
-    info("Forcing rosdep to use agirosdep sources: {0}".format(agiros_url))
-    loader.load([agiros_url])
+    info(f"Using AGIROS sources.list.d/base.yaml: '{agiros_url}'")
 
+    # 初始化时直接传 sources
+    loader = SourcesListLoader([agiros_url])
     ctx.set_sources_loader(loader)
 
+    # 兼容旧代码（避免 AttributeError）
+    if not hasattr(ctx, 'rosdep_sources_list'):
+        ctx.rosdep_sources_list = {}
     return ctx
 
 
