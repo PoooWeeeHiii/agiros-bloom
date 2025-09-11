@@ -30,6 +30,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# 强制 rosdep 优先使用 agirosdep 提供的 base.yaml 作为依赖解析来源
+# 保留官方 rosdep rules 作为 fallback
+
 from __future__ import print_function
 
 import pkg_resources
@@ -43,6 +46,7 @@ from bloom.logging import info
 from bloom.rosdistro_api import get_distribution_type
 from bloom.rosdistro_api import get_index
 from bloom.rosdistro_api import get_python_version
+from bloom.rosdistro_api import get_sources_list_url
 
 from bloom.util import code
 from bloom.util import maybe_continue
@@ -100,18 +104,32 @@ def update_rosdep():
               exit=True)
 
 
-def resolve_more_for_os(rosdep_key, view, installer, os_name, os_version):
+# === 新增：AGIROS rosdep installer context ===
+def create_agiros_installer_context():
     """
-    Resolve rosdep key to dependencies and installer key.
-    (This was copied from rosdep2.catkin_support)
-
-    :param os_name: OS name, e.g. 'ubuntu'
-    :returns: resolved key, resolved installer key, and default installer key
-
-    :raises: :exc:`rosdep2.ResolutionError`
+    创建一个 rosdep installer context，
+    在默认规则之前强制插入 agirosdep 的 base.yaml。
     """
-    d = view.lookup(rosdep_key)
     ctx = create_default_installer_context()
+
+    agiros_source = {
+        'type': 'yaml',
+        'url': get_sources_list_url(),
+        'tags': ['base'],
+    }
+
+    # 插入到最前，保证优先级
+    ctx.rosdep_sources_list = {
+        'agiros': agiros_source,
+        **ctx.rosdep_sources_list
+    }
+    info("Using agirosdep as primary rosdep source: {0}".format(agiros_source['url']))
+    return ctx
+
+
+def resolve_more_for_os(rosdep_key, view, installer, os_name, os_version):
+    d = view.lookup(rosdep_key)
+    ctx = create_agiros_installer_context()
     os_installers = ctx.get_os_installer_keys(os_name)
     default_os_installer = ctx.get_default_os_installer_key(os_name)
     inst_key, rule = d.get_rule_for_platform(os_name, os_version,
@@ -122,13 +140,6 @@ def resolve_more_for_os(rosdep_key, view, installer, os_name, os_version):
 
 
 def package_conditional_context(ros_distro):
-    """
-    Creates a dict containing the conditional evaluation context for
-    package.xml format three packages.
-
-    :param ros_distro: The codename of the rosdistro to generate context for.
-    :returns: dict defining ROS_VERSION and ROS_DISTRO.
-    """
     if get_index().version < 4:
         error("Bloom requires a version 4 or greater rosdistro index to support package format 3.", exit=True)
 
@@ -162,16 +173,6 @@ def package_conditional_context(ros_distro):
 
 
 def evaluate_package_conditions(package, ros_distro):
-    """
-    Evaluates a package's conditional fields if it supports them.
-
-    :param package: The package to be evaluated.
-    :param ros_distro: The codename of the rosdistro use for context.
-    :returns: None. The given package will be modified.
-    """
-    # Conditional fields were introduced in package format 3.
-    # Earlier formats should have their conditions evaluated with no context so
-    # the evaluated_condition is set to True in all cases.
     if package.package_format >= 3:
         package.evaluate_conditions(package_conditional_context(ros_distro))
 
@@ -185,7 +186,7 @@ def resolve_rosdep_key(
     retry=True
 ):
     ignored = ignored or []
-    ctx = create_default_installer_context()
+    ctx = create_agiros_installer_context()
     try:
         installer_key = ctx.get_default_os_installer_key(os_name)
     except KeyError:
@@ -201,7 +202,7 @@ def resolve_rosdep_key(
         if key in ignored:
             return None, None, None
         if isinstance(exc, KeyError):
-            error("Could not resolve rosdep key '{0}'".format(key))
+            error("'{0}'".format(key))
             returncode = code.GENERATOR_NO_SUCH_ROSDEP_KEY
         else:
             error("Could not resolve rosdep key '{0}' for distro '{1}':"
@@ -242,8 +243,6 @@ def resolve_dependencies(
         resolved_key, installer_key, default_installer_key = \
             resolve_rosdep_key(key, os_name, os_version, ros_distro,
                                peer_packages, retry=True)
-        # Do not compare the installer key here since this is a general purpose function
-        # They installer is verified in the OS specific generator, when the keys are pre-checked.
         if resolved_key is None:
             resolved_key = fallback_resolver(key, peer_packages)
         resolved_keys[key] = resolved_key
@@ -265,9 +264,6 @@ class GeneratorError(Exception):
 
 
 class BloomGenerator(object):
-    """
-    Abstract generator class, from which all bloom generators inherit.
-    """
     generator_type = None
     title = 'no title'
     description = None
@@ -278,130 +274,40 @@ class BloomGenerator(object):
         raise GeneratorError(msg, returncode)
 
     def prepare_arguments(self, parser):
-        """
-        Argument preparation hook, should be implemented in child class
-
-        :param parser: argparse.ArgumentParser on which to call add_argument()
-        """
         pass
 
     def handle_arguments(self, args):
-        """
-        Hook to handle parsed arguments from argparse
-        """
         debug("BloomGenerator.handle_arguments: got args -> " + str(args))
 
     def summarize(self):
-        """
-        Summarize the command, consider listing configurations here
-        """
         info("Running " + self.title + " generator")
 
     def get_branching_arguments(self):
-        """
-        Return a list of tuples, each representing parameters for branching.
-
-        Override this to return something other than [] if this generator
-        needs to produce branches.
-
-        The tuples can either be singular (destination,), or contain two
-        elements (destination, source). Optionally, a third tuple element
-        can be a bool indicating if git-bloom-branch should be interactive:
-        (destination, source, interactive)
-
-        :returns: list of tuples containing arguments for git-bloom-branch
-        """
         return []
 
     def pre_modify(self):
-        """
-        Hook for last minute checks
-
-        This is the last call before the generator is expected to start
-        performing modifications to the repository.
-
-        :returns: return code, return 0 or None for OK, anything else on error
-        """
         return 0
 
     def pre_branch(self, destination, source):
-        """
-        Pre-branching hook
-
-        :param destination: destination branch name
-        :param source: source branch name
-
-        :returns: return code, return 0 or None for OK, anythign else on error
-        """
         return 0
 
     def post_branch(self, destination, source):
-        """
-        Post-branching hook
-
-        :param destination: destination branch name
-        :param source: source branch name
-
-        :returns: return code, return 0 or None for OK, anythign else on error
-        """
         return 0
 
     def pre_export_patches(self, branch_name):
-        """
-        Pre-patch-export hook
-
-        :param branch_name: name of the branch patches are being exported from
-
-        :returns: return code, return 0 or None for OK, anythign else on error
-        """
         return 0
 
     def post_export_patches(self, branch_name):
-        """
-        Post-patch-export hook
-
-        :param branch_name: name of the branch patches are being exported from
-
-        :returns: return code, return 0 or None for OK, anythign else on error
-        """
         return 0
 
     def pre_rebase(self, branch_name):
-        """
-        Pre-rebase hook
-
-        :param branch_name: name of the branch rebase is being done on
-
-        :returns: return code, return 0 or None for OK, anythign else on error
-        """
         return 0
 
     def post_rebase(self, branch_name):
-        """
-        Post-rebase hook
-
-        :param branch_name: name of the branch rebase is being done on
-
-        :returns: return code, return 0 or None for OK, anythign else on error
-        """
         return 0
 
     def pre_patch(self, branch_name):
-        """
-        Pre-patching hook
-
-        :param branch_name: name of the branch being patched
-
-        :returns: return code, return 0 or None for OK, anythign else on error
-        """
         return 0
 
     def post_patch(self, branch_name):
-        """
-        Post-patching hook
-
-        :param branch_name: name of the branch being patched
-
-        :returns: return code, return 0 or None for OK, anythign else on error
-        """
         return 0

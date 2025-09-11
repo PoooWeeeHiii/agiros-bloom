@@ -15,6 +15,7 @@ from bloom.generators.debian.generate_cmd import prepare_arguments
 
 from bloom.logging import info
 from bloom.rosdistro_api import get_index, get_sources_list_url
+import os
 
 
 def agirosify_package_name(name, rosdistro):
@@ -36,6 +37,9 @@ class AgirosDebianGenerator(DebianGenerator):
     description = "Generates debians tailored for the AGIROS rosdistro"
     # Rule 2: Set the default installation prefix
     default_install_prefix = '/opt/agiros/'
+    def __init__(self, *args, **kwargs):
+        super(AgirosDebianGenerator, self).__init__(*args, **kwargs)
+        self.template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 
     def __init__(self, *args, **kwargs):
         super(AgirosDebianGenerator, self).__init__(*args, **kwargs)

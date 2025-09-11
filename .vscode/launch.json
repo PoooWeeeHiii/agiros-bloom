@@ -1,17 +1,40 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {"name":"Python Debugger: Module","type":"debugpy","request":"launch","module":"generator"},
-        {
-            "name": "Python Debugger: Current File with Arguments",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "args": "${command:pickArgs}"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Bloom: generate_cmd (命令式)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/bloom/commands/generate.py",
+      "console": "integratedTerminal",
+      "args": [
+        "agirosdebian",
+        "--ros-distro", "loong",
+        "--os-name", "ubuntu",
+        "--os-version", "jammy"
+      ],
+      "env": {
+        "ROS_DISTRO": "loong",
+        "BLOOM_TEMPLATE_GROUP": "bloom.generators.agirosdebian"
+      }
+    },
+    {
+      "name": "Bloom: generator (分支式)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/bloom/commands/generate.py",
+      "console": "integratedTerminal",
+      "args": [
+        "agirosdebian",
+        "-p", "release",
+        "--ros-distro", "loong",
+        "--os-name", "ubuntu",
+        "--os-version", "jammy"
+      ],
+      "env": {
+        "ROS_DISTRO": "loong",
+        "BLOOM_TEMPLATE_GROUP": "bloom.generators.agirosdebian"
+      }
+    }
+  ]
 }
