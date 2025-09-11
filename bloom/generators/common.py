@@ -108,20 +108,25 @@ def update_rosdep():
 
 # 新增：AGIROS rosdep installer context 
 from rosdep2.sources_list import SourcesListLoader
+from rosdep2 import create_default_installer_context
+from bloom.rosdistro_api import get_sources_list_url
+from bloom.logging import info
 
 def create_agiros_installer_context():
     ctx = create_default_installer_context()
 
+    # 强制只用 agirosdep
     agiros_url = get_sources_list_url()
     info(f"Using AGIROS sources.list.d/base.yaml: '{agiros_url}'")
 
-    # 初始化时直接传 sources
-    loader = SourcesListLoader([agiros_url])
-    ctx.set_sources_loader(loader)
+    ctx.rosdep_sources_list = {
+        'agiros': {
+            'type': 'yaml',
+            'url': agiros_url,
+            'tags': ['base']
+        }
+    }
 
-    # 兼容旧代码（避免 AttributeError）
-    if not hasattr(ctx, 'rosdep_sources_list'):
-        ctx.rosdep_sources_list = {}
     return ctx
 
 
