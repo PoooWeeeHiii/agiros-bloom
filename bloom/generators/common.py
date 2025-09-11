@@ -1,9 +1,10 @@
 # Copyright 2025 AGIROS Maintainers
 # Licensed under the BSD License
 #
-# 移除了 ROS 官方 rosdep 源的逻辑
-# 强制只使用 agirosdep 的 base.yaml
-
+# AGIROS 定制版 common.py
+# - 强制使用 agirosdep 的 base.yaml
+# - 移除 ROS 官方逻辑
+# - 保留一个最小化 BloomGenerator 占位类，避免 import 错误
 
 import traceback
 
@@ -22,6 +23,16 @@ DEFAULT_ROS_DISTRO = "loong"
 view_cache = {}
 
 
+class BloomGenerator:
+    """
+    Minimal BloomGenerator placeholder for AGIROS.
+    Some parts of bloom still import this symbol.
+    """
+    @staticmethod
+    def exit(msg, returncode=1):
+        error(msg, exit=True)
+
+
 def create_agiros_installer_context():
     """
     创建 agirosdep 的 installer context，只加载 agirosdep base.yaml。
@@ -30,6 +41,7 @@ def create_agiros_installer_context():
     agiros_url = get_sources_list_url()
     info(f"Using AGIROS base.yaml: {agiros_url}")
 
+    # 强制覆盖 rosdep_sources_list，避免调用官方 rules
     ctx.rosdep_sources_list = {
         "agiros": {
             "type": "yaml",
@@ -37,7 +49,6 @@ def create_agiros_installer_context():
             "tags": ["base"],
         }
     }
-    info("[DEBUG] agirosdep context is in use!")
     return ctx
 
 
@@ -77,7 +88,7 @@ def resolve_rosdep_key(
     try:
         installer_key = ctx.get_default_os_installer_key(os_name)
     except KeyError:
-        error(f"Could not determine the installer for '{os_name}'", exit=True)
+        BloomGenerator.exit(f"Could not determine the installer for '{os_name}'")
 
     installer = ctx.get_installer(installer_key)
     ros_distro = ros_distro or DEFAULT_ROS_DISTRO
@@ -106,4 +117,5 @@ def resolve_rosdep_key(
                     key, os_name, os_version, ros_distro, ignored, retry=True
                 )
 
-        error(f"Failed to resolve rosdep key '{key}', aborting.", exit=True)
+        BloomGenerator.exit(f"Failed to resolve rosdep key '{key}', aborting.",
+                            returncode=returncode)
