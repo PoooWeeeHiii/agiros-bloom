@@ -51,6 +51,8 @@ from bloom.rosdistro_api import get_sources_list_url
 from bloom.util import code
 from bloom.util import maybe_continue
 from bloom.util import print_exc
+from rosdep2.sources_list import SourcesListLoader
+
 
 try:
     from rosdep2 import create_default_installer_context
@@ -104,26 +106,24 @@ def update_rosdep():
               exit=True)
 
 
-# === 新增：AGIROS rosdep installer context ===
+# 新增：AGIROS rosdep installer context 
+from rosdep2.sources_list import SourcesListLoader
+
 def create_agiros_installer_context():
     """
     创建一个 rosdep installer context，
-    在默认规则之前强制插入 agirosdep 的 base.yaml。
+    用 agirosdep 的 base.yaml 覆盖默认 sources。
     """
     ctx = create_default_installer_context()
 
-    agiros_source = {
-        'type': 'yaml',
-        'url': get_sources_list_url(),
-        'tags': ['base'],
-    }
+    # 用 SourcesListLoader 来替换，避免直接访问 ctx.rosdep_sources_list
+    loader = SourcesListLoader()
+    agiros_url = get_sources_list_url()
+    info("Forcing rosdep to use agirosdep sources: {0}".format(agiros_url))
+    loader.load([agiros_url])
 
-    # 插入到最前，保证优先级
-    ctx.rosdep_sources_list = {
-        'agiros': agiros_source,
-        **ctx.rosdep_sources_list
-    }
-    info("Using agirosdep as primary rosdep source: {0}".format(agiros_source['url']))
+    ctx.set_sources_loader(loader)
+
     return ctx
 
 
