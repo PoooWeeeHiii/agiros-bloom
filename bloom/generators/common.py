@@ -1,6 +1,7 @@
 import pkg_resources
 import sys
 import traceback
+import subprocess
 
 from bloom.logging import debug, error, info
 from bloom.rosdistro_api import get_distribution_type, get_index, get_python_version, get_sources_list_url
@@ -73,16 +74,6 @@ def create_agiros_installer_context():
     return ctx
 
 
-def resolve_more_for_os(rosdep_key, view, installer, os_name, os_version):
-    d = view.lookup(rosdep_key)
-    ctx = create_agiros_installer_context()
-    os_installers = ctx.get_os_installer_keys(os_name)
-    default_os_installer = ctx.get_default_os_installer_key(os_name)
-    inst_key, rule = d.get_rule_for_platform(os_name, os_version, os_installers, default_os_installer)
-    assert inst_key in os_installers
-    return installer.resolve(rule), inst_key, default_os_installer
-
-
 def package_conditional_context(ros_distro):
     if get_index().version < 4:
         error("Bloom requires a version 4 or greater rosdistro index to support package format 3.", exit=True)
@@ -117,36 +108,36 @@ def evaluate_package_conditions(package, ros_distro):
         package.evaluate_conditions(package_conditional_context(ros_distro))
 
 
+# === 改造版：直接调用 agirosdep resolve ===
 def resolve_rosdep_key(key, os_name, os_version, ros_distro=None, ignored=None, retry=True):
     ignored = ignored or []
-    ctx = create_agiros_installer_context()  # 强制使用 agirosdep
-    try:
-        installer_key = ctx.get_default_os_installer_key(os_name)
-    except KeyError:
-        BloomGenerator.exit(f"Could not determine the installer for '{os_name}'")
-    installer = ctx.get_installer(installer_key)
     ros_distro = ros_distro or DEFAULT_ROS_DISTRO
-    view = get_view(os_name, os_version, ros_distro)
+
     try:
-        return resolve_more_for_os(key, view, installer, os_name, os_version)
-    except (KeyError, ResolutionError) as exc:
+        cmd = [
+            "agirosdep", "resolve", key,
+            "--rosdistro", ros_distro,
+            "--os", f"{os_name}:{os_version}"
+        ]
+        debug("Running: " + " ".join(cmd))
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        lines = out.decode("utf-8").strip().splitlines()
+        pkgs = []
+        for line in lines:
+            if line.startswith("agiros-"):
+                pkgs.append(line.strip())
+        if not pkgs:
+            raise KeyError(f"No agirosdep rule for {key}")
+        return pkgs, "apt", "apt"
+    except subprocess.CalledProcessError as e:
         debug(traceback.format_exc())
         if key in ignored:
             return None, None, None
-        if isinstance(exc, KeyError):
-            error(f"Could not resolve rosdep key '{key}'")
-            returncode = code.GENERATOR_NO_SUCH_ROSDEP_KEY
-        else:
-            error(f"Could not resolve rosdep key '{key}' for distro '{os_version}':")
-            info(str(exc), use_prefix=False)
-            returncode = code.GENERATOR_NO_ROSDEP_KEY_FOR_DISTRO
-        if retry:
-            error("Try to resolve the problem with agirosdep and then continue.")
-            if maybe_continue():
-                update_rosdep()
-                invalidate_view_cache()
-                return resolve_rosdep_key(key, os_name, os_version, ros_distro, ignored, retry=True)
-        BloomGenerator.exit(f"Failed to resolve rosdep key '{key}', aborting.", returncode=returncode)
+        error(f"Could not resolve rosdep key '{key}' via agirosdep")
+        info(e.output.decode("utf-8"), use_prefix=False)
+        if retry and maybe_continue():
+            return resolve_rosdep_key(key, os_name, os_version, ros_distro, ignored, retry)
+        BloomGenerator.exit(f"Failed to resolve rosdep key '{key}', aborting.", returncode=code.GENERATOR_NO_SUCH_ROSDEP_KEY)
 
 
 def default_fallback_resolver(key, peer_packages):
