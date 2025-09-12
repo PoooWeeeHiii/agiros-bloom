@@ -59,7 +59,7 @@ def update_rosdep():
         error("Failed to update rosdep, did you run 'rosdep init' first?", exit=True)
 
 
-# === AGIROS 强制使用 agirosdep base.yaml ===
+# AGIROS 强制使用 agirosdep base.yaml
 def create_agiros_installer_context():
     ctx = create_default_installer_context()
     agiros_url = get_sources_list_url()
