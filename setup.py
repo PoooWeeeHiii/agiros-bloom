@@ -52,8 +52,6 @@ generation of platform specific source packages, like debian's src-debs.""",
     test_suite='test',
     entry_points={
         'console_scripts': [
-            # 清理：移除了所有指向不存在的 bloom.commands.git.* 的条目
-            # 只保留与您截图中的文件相对应的命令
             'bloom-export-upstream = bloom.commands.export_upstream:main',
             'bloom-update = bloom.commands.update:main',
             'bloom-release = bloom.commands.release:main',
