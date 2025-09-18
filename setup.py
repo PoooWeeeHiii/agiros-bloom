@@ -3,8 +3,6 @@
 import sys
 from setuptools import find_packages, setup
 
-# 这是一个与您的项目代码结构同步的setup.py版本。
-# 它清理了过时的命令入口点，并保留了您对agirosdebian生成器的所有定制。
 
 setup(
     name='bloom',
