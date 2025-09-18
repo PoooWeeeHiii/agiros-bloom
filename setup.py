@@ -67,15 +67,16 @@ generation of platform specific source packages, like debian's src-debs.""",
             'debian = bloom.generators.debian:DebianGenerator',
             'rpm = bloom.generators.rpm:RpmGenerator',
             'rosrpm = bloom.generators.rosrpm:RosRpmGenerator',
-            # 保留：您对agirosdebian的定制
             'agirosdebian = bloom.generators.agirosdebian:AgirosDebianGenerator',
+            'agirosrpm = bloom.generators.agirosrpm:AgirosRpmGenerator',
+
         ],
         'bloom.generate_cmds': [
             'debian = bloom.generators.debian.generate_cmd:description',
             'rpm = bloom.generators.rpm.generate_cmd:description',
             'rosrpm = bloom.generators.rosrpm:description',
-            # 保留：您对agirosdebian的定制
             'agirosdebian = bloom.generators.agirosdebian:description',
+            'agirosrpm = bloom.generators.agirosrpm:description',
         ]
     }
 )
