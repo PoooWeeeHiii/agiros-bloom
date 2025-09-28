@@ -145,10 +145,21 @@ def resolve_rosdep_key(
         pkgs = []
         for line in lines:
             s = line.strip()
+
+            # 跳过空行和注释
             if not s or s.startswith("#"):
                 continue
-            if s.startswith("agiros-"):
-                pkgs.append(s)
+
+            # 跳过调试输出 (比如 http://、sources.list、View 等)
+            if "http://" in s or "https://" in s:
+                continue
+            if s.startswith("View") or s.startswith("sources.list") or s.startswith("[*default*]"):
+                continue
+
+            if " " in s:
+                continue
+
+            pkgs.append(s)
 
         if not pkgs:
             raise KeyError(
